@@ -8,10 +8,8 @@ class TodoListHeader extends React.Component {
         title: ''
     }
 
-
     onAddTaskClick = () => {
         let newText = this.state.title
-        //
         if (newText === '') {
             this.setState( {error: true})
         }
@@ -19,7 +17,6 @@ class TodoListHeader extends React.Component {
             this.setState( {error: false})
             this.props.AddTask(newText)
             this.state.title = ''
-
         }
     }
 
@@ -37,17 +34,15 @@ class TodoListHeader extends React.Component {
 
 
     render = () => {
-        debugger
 
         let classForError = this.state.error === true ? 'error' : ''
 
         return (
 
                 <div className="todoList-header">
-                    <h3 className="todoList-header__title">What to Learn</h3>
+                    <h3 className="todoList-header__title">{this.props.title}</h3>
                     <div className="todoList-newTaskForm">
                         <input className={classForError}
-
                                type="text" placeholder="New task name"
                                onChange={this.onTitleChanged}
                                onKeyPress={this.onKeyPress}
