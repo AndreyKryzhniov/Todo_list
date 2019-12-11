@@ -5,7 +5,15 @@ import TodoListFooter from "./TodoListFooter";
 import TodoListTitle from "./TodoListTitle";
 import AddNewItemForm from "./AddNewItemForm";
 import {connect} from "react-redux";
-import {addTaskAC, changeTaskAC, deleteTaskAC, deleteTodolistAC} from "./reducer";
+import {
+    addTaskThunkAC,
+    changeFilterAC,
+    changeTaskThunkAC,
+    deleteTaskThunkAC,
+    deleteTodoListThunkAC,
+    loadTasksThunkAC
+} from "./reducer";
+
 
 class TodoList extends React.Component {
 
@@ -13,127 +21,108 @@ class TodoList extends React.Component {
         this.restoreState()
     }
 
-    nextTaskId = 0
-
-    state = {
-        // tasks: [],
-        filterValue: ''
-    }
-
-    saveState = () => {
-        let stateAsString = JSON.stringify(this.state)
-        localStorage.setItem('our-state' + this.props.id, stateAsString)
-    }
-
     restoreState = () => {
-        let state = {
-            tasks: [],
-            filterValue: 'All'
-        }
-        let stateAsString = localStorage.getItem('our-state' + this.props.id)
-        if (stateAsString != null) {
-            state = JSON.parse(stateAsString)
-        }
-        this.setState(state, () => {
-            this.state.tasks.forEach(t => {
-                if (t.id >= this.nextTaskId) {
-                    this.nextTaskId = t.id + 1
-                }
-            })
-        })
+        this.props.loadTasks(this.props.id)
     }
 
-    AddTask = (newText) => {
-        let newTask = {
-            id: this.nextTaskId,
-            title: newText,
-            isDone: false,
-            priority: 'low'
-        }
-        this.nextTaskId++
-        this.props.addTask(newTask, this.props.id)
+    addTask = (newText) => {
+        this.props.addTask(newText, this.props.id)
     }
 
     changeFilter = (newFilterValue) => {
-        this.setState({
-            filterValue: newFilterValue
-        }, () => {
-            this.saveState()
-        })
+        this.props.changeFilter(newFilterValue)
     }
 
-    changeTask = (taskId, obj) => {
-        this.props.changeTask(this.props.id, taskId, obj)
+    changeTask = (task) => {
+        this.props.changeTask(task)
     }
 
-    changeStatus = (taskId, isDone) => {
-        this.changeTask(taskId, {isDone})
+    changeStatus = (task, status) => {
+        let newTask = {...task, status: status ? 2 : 0}
+        this.changeTask(newTask)
     }
 
-    changeTitle = (taskId, title) => {
-        this.changeTask(taskId,{title})
+    changeTitle = (task, title) => {
+        let newTask = {...task, title: title}
+        this.changeTask(newTask)
     }
 
-    deleteTodolist = (todolistId) => {
-        this.props.deleteTodolist(todolistId)
+    deleteTodolist = (id) => {
+        this.props.deleteTodolist(id)
     }
 
     deleteTask = (taskId) => {
-        this.props.deleteTask(this.props.id, taskId)
+                    this.props.deleteTask(this.props.id, taskId)
     }
 
     render = () => {
+        let {tasks = []} = this.props
         return (
             <div className="App">
                 <div className="todoList">
                     <div className='todoList-header'>
-                        <TodoListTitle title={this.props.title} id={this.props.id} deleteTodolist={this.props.deleteTodolist}/>
-                        <AddNewItemForm addItem={this.AddTask}/>
+                        <TodoListTitle title={this.props.title} id={this.props.id} deleteTodolist={this.deleteTodolist}/>
+                        <AddNewItemForm addItem={this.addTask}/>
                     </div>
                     <TodoListTasks
                         deleteTask={this.deleteTask}
                         changeStatus={this.changeStatus}
                         changeTitle={this.changeTitle}
-                        tasks={this.props.tasks.filter(t => {
-                            if (this.state.filterValue === 'All') {
+                        tasks={tasks.filter(t => {
+                            if (this.props.filterValue === 'All') {
                                 return true
                             }
-                            if (this.state.filterValue === 'Completed') {
+                            if (this.props.filterValue === 'Completed') {
                                 return t.isDone
                             }
-                            if (this.state.filterValue === 'Active') {
+                            if (this.props.filterValue === 'Active') {
                                 return t.isDone === false
                             }
                         })}/>
-                    <TodoListFooter changeFilter={this.changeFilter} filterValue={this.state.filterValue}/>
+                    <TodoListFooter changeFilter={this.props.changeFilter} filterValue={this.props.filterValue}/>
                 </div>
             </div>
         );
     }
 }
 
+const mapStateToProps = (state) => {
+    return {
+        filterValue: state.filterValue,
+        taskId: state.taskId,
+    }
+}
+
 const mapDispatchToProps = (dispatch) => {
     return {
-        addTask(newTask, todolistId) {
-            const action = addTaskAC(newTask, todolistId)
-            dispatch(action)
-        },
-        changeTask(todolistId, taskId, obj) {
-            const action = changeTaskAC(todolistId, taskId, obj)
-            dispatch(action)
+        changeTask(task) {
+            const thunk = changeTaskThunkAC(task)
+            dispatch(thunk)
         },
         deleteTodolist(todolistId) {
-            const action = deleteTodolistAC(todolistId)
+            const thunk = deleteTodoListThunkAC(todolistId)
+            dispatch(thunk)
+        },
+        changeFilter(newFilterValue) {
+            const action = changeFilterAC(newFilterValue)
             dispatch(action)
         },
+        loadTasks(todolistId) {
+            const thunk = loadTasksThunkAC(todolistId)
+            dispatch(thunk)
+        },
+        addTask(newTask, todoListId) {
+            const thunk = addTaskThunkAC(newTask, todoListId)
+            dispatch(thunk)
+        },
         deleteTask(todolistId, taskId) {
-            const action = deleteTaskAC(todolistId, taskId)
-            dispatch(action)
+            const thunk = deleteTaskThunkAC(todolistId, taskId)
+            dispatch(thunk)
         }
     }
 }
 
-const ConnectedTodolist = connect(null, mapDispatchToProps)(TodoList)
+const ConnectedTodolist = connect(mapStateToProps, mapDispatchToProps)(TodoList)
 
 export default ConnectedTodolist;
 
